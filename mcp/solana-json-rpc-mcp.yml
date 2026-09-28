@@ -16,14 +16,22 @@ deployment:
 tools_count: 5
 tools:
 - name: Solana_Expert__Ask_For_Help
-  description: ''
+  description: Ask a Solana expert (RAG over docs). Use for narrow how-to / debugging Qs; prefer get_documentation
+    for full canonical docs.
 - name: Solana_Documentation_Search
-  description: ''
+  description: Semantic search over the Solana docs corpus (RAG). Use for narrow queries; prefer get_documentation
+    for full canonical docs.
 - name: list_sections
-  description: ''
+  description: Lists Solana doc sources tagged by section + use_cases. Call before get_documentation to
+    pick relevant ids.
 - name: get_documentation
-  description: ''
+  description: Fetch full docs for source id(s) or section id(s). Token-intensive — pick from list_sections
+    first; prefer Solana_Documentation_Search for narrow questions.
 - name: program_autofixer
-  description: ''
+  description: Static security linter for Solana program Rust (Pinocchio + Anchor). Returns issues (with
+    stable `fingerprint`), suggestions, detected framework, `false_positive_hints` (rule → known blind
+    spots), and `require_another_tool_call_after_fixing
 tools_source: live tools/list via initialize handshake, 2026-09-12 (signals/audit_mcp_authorship.py --probe)
 authorship: provider
+descriptions_source: live tools/list (authorship probe or saved capture); filled by backfill-tools-from-authorship.py
+  --descriptions, 2026-09-28
