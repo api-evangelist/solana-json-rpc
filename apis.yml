@@ -39,7 +39,6 @@ apis:
   - name: Solana JSON RPC
     description: "Provides various endpoints to interact with the Solana Blockchain"
     humanURL: https://docs.solana.com/developing/clients/jsonrpc-api
-    baseURL: https://docs.solana.com/developing/clients/jsonrpc-api
     tags:
       - Cryptocurrency
     properties:
