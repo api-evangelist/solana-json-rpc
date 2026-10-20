@@ -1,0 +1,255 @@
+{
+  "endpoint": "https://mcp.solana.com/mcp",
+  "captured": "2026-10-20",
+  "method": "initialize + tools/list (anonymous, no tool called; roadmap#992)",
+  "protocol_version": "2025-06-18",
+  "server_info": {
+    "name": "solana-mcp",
+    "version": "2.0.0"
+  },
+  "result": {
+    "tools": [
+      {
+        "name": "Solana_Expert__Ask_For_Help",
+        "description": "Ask a Solana expert (RAG over docs). Use for narrow how-to / debugging Qs; prefer get_documentation for full canonical docs.",
+        "inputSchema": {
+          "type": "object",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "question": {
+              "type": "string",
+              "description": "Solana question with as much context as possible. Used for similarity search."
+            }
+          },
+          "required": [
+            "question"
+          ]
+        }
+      },
+      {
+        "name": "Solana_Documentation_Search",
+        "description": "Semantic search over the Solana docs corpus (RAG). Use for narrow queries; prefer get_documentation for full canonical docs.",
+        "inputSchema": {
+          "type": "object",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query matched against the corpus."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "list_sections",
+        "description": "Lists Solana doc sources tagged by section + use_cases. Call before get_documentation to pick relevant ids.",
+        "inputSchema": {
+          "type": "object",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {}
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": true
+        }
+      },
+      {
+        "name": "get_documentation",
+        "description": "Fetch full docs for source id(s) or section id(s). Token-intensive — pick from list_sections first; prefer Solana_Documentation_Search for narrow questions.",
+        "inputSchema": {
+          "type": "object",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "section": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "description": "Source id (e.g. \"anchor-docs\") or section id (e.g. \"frameworks\"). Single string or array."
+            }
+          },
+          "required": [
+            "section"
+          ]
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true
+        }
+      },
+      {
+        "name": "program_autofixer",
+        "description": "Static security linter for Solana program Rust (Pinocchio + Anchor). Returns issues (with stable `fingerprint`), suggestions, detected framework, `false_positive_hints` (rule → known blind spots), and `require_another_tool_call_after_fixing`.\n\nMUST be called whenever the user asks to write or modify Solana program Rust, before returning code. Re-call after fixes until `require_another_tool_call_after_fixing` is false — true only while syntax errors or undismissed critical/high issues remain; medium/low are advisory. Repeated issues of a rule and dismissed issues omit `description`/`suggestion` — see the rule's first issue.\n\nFalse positives: check the rule's `false_positive_hints` conditions against the code. If one verifiably holds, re-call with `dismissed: [{fingerprint, reason, matched_hint}]` — `matched_hint` = index of the matching condition ('other' if none listed), `reason` = the evidence. Dismissed issues stop gating the flag, return marked `dismissed: true`. Surface dismissed critical/high to the user with the reason. Never dismiss unverified.",
+        "inputSchema": {
+          "type": "object",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Rust source: a single program file or concatenated module."
+            },
+            "filename": {
+              "description": "File name for issue locations, e.g. \"instructions/init.rs\". Defaults to \"input.rs\".",
+              "type": "string"
+            },
+            "framework": {
+              "default": "auto",
+              "description": "Framework hint. Default 'auto' — detect from imports / attributes.",
+              "type": "string",
+              "enum": [
+                "pinocchio",
+                "anchor",
+                "auto"
+              ]
+            },
+            "dismissed": {
+              "description": "Issues verified as false positives, by fingerprint. `reason` must cite the code evidence; `matched_hint` is the index of the matching `false_positive_hints` condition, or 'other' if none applies. Dismissed issues stop gating `require_another_tool_call_after_fixing` but are still returned flagged `dismissed: true`.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "fingerprint": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "matched_hint": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "string",
+                        "const": "other"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "fingerprint",
+                  "reason"
+                ]
+              }
+            }
+          },
+          "required": [
+            "code"
+          ]
+        },
+        "annotations": {
+          "title": "Program Autofixer",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "outputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "issues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "critical",
+                      "high",
+                      "medium",
+                      "low"
+                    ]
+                  },
+                  "rule": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "suggestion": {
+                    "type": "string"
+                  },
+                  "fingerprint": {
+                    "type": "string"
+                  },
+                  "dismissed": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "severity",
+                  "rule",
+                  "title",
+                  "location",
+                  "fingerprint"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "suggestions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "framework_detected": {
+              "type": "string",
+              "enum": [
+                "pinocchio",
+                "anchor",
+                "unknown"
+              ]
+            },
+            "false_positive_hints": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "require_another_tool_call_after_fixing": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "issues",
+            "suggestions",
+            "framework_detected",
+            "false_positive_hints",
+            "require_another_tool_call_after_fixing"
+          ],
+          "additionalProperties": false
+        }
+      }
+    ]
+  }
+}
